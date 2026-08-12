@@ -1,0 +1,49 @@
+{
+    "name": "github",
+    "description": "GitHub repository tools via GitHub App — branches, PRs, file operations, commit history",
+    "version": "1.0.0",
+    "dependencies": [
+        "httpx",
+        "pyjwt[crypto]"
+    ],
+    "secrets": [
+        {
+            "service": "github-tools",
+            "key": "github_app_id",
+            "label": "GitHub App ID"
+        },
+        {
+            "service": "github-tools",
+            "key": "github_installation_id",
+            "label": "GitHub Installation ID"
+        },
+        {
+            "service": "github-tools",
+            "key": "github_private_key",
+            "label": "GitHub App private key (PEM format)"
+        }
+    ],
+    "config": [
+        {
+            "file": "_auth.py",
+            "name": "GITHUB_OWNER",
+            "label": "GitHub org or personal account name"
+        },
+        {
+            "file": "_auth.py",
+            "name": "GITHUB_COMMITTER_NAME",
+            "label": "Git committer display name"
+        },
+        {
+            "file": "_auth.py",
+            "name": "GITHUB_COMMITTER_EMAIL",
+            "label": "Git committer email (noreply recommended)"
+        },
+        {
+            "file": "_auth.py",
+            "name": "GITHUB_COAUTHOR",
+            "label": "Co-author trailer (Name <email> format, or leave empty)"
+        }
+    ],
+    "trust": "read_write"
+}
