@@ -35,6 +35,8 @@ def handler(context, repo, path):
     logger.info("Reading file %s/%s/%s", GITHUB_OWNER, repo, path)
     url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
     resp = httpx.get(url, headers=auth_headers())
+    if resp.status_code == 404:
+        return json.dumps({"error": f"File not found: {path}"})
     resp.raise_for_status()
 
     data = resp.json()
