@@ -25,22 +25,22 @@
     ],
     "config": [
         {
-            "file": "_auth.py",
+            "file": "_config.py",
             "name": "GITHUB_OWNER",
             "label": "GitHub org or personal account name"
         },
         {
-            "file": "_auth.py",
+            "file": "_config.py",
             "name": "GITHUB_COMMITTER_NAME",
             "label": "Git committer display name"
         },
         {
-            "file": "_auth.py",
+            "file": "_config.py",
             "name": "GITHUB_COMMITTER_EMAIL",
             "label": "Git committer email (noreply recommended)"
         },
         {
-            "file": "_auth.py",
+            "file": "_config.py",
             "name": "GITHUB_COAUTHOR",
             "label": "Co-author trailer (Name <email> format, or leave empty)"
         }
