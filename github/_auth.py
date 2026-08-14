@@ -1,8 +1,7 @@
-"""Shared GitHub App authentication and configuration.
+"""Shared GitHub App authentication.
 
-After installing this tool group, edit the values below for your
-GitHub org and identity. Then run setup_keys.py to store your
-GitHub App credentials in the system keyring.
+Credentials come from the system keyring (set via setup_keys.py).
+User configuration comes from _config.py (edit after installation).
 """
 
 import logging
@@ -12,20 +11,14 @@ import httpx
 import jwt
 import keyring
 
+from _config import (
+    GITHUB_OWNER,
+    GITHUB_COMMITTER_NAME,
+    GITHUB_COMMITTER_EMAIL,
+    GITHUB_COAUTHOR,
+)
+
 logger = logging.getLogger(__name__)
-
-# ---------------------------------------------------------------------------
-# Edit these for your setup
-# ---------------------------------------------------------------------------
-
-GITHUB_OWNER = ""               # your GitHub org or personal account
-GITHUB_COMMITTER_NAME = ""      # git committer display name
-GITHUB_COMMITTER_EMAIL = ""     # git committer email (noreply recommended)
-GITHUB_COAUTHOR = ""            # Co-authored-by trailer, or "" to disable
-
-# ---------------------------------------------------------------------------
-# GitHub App credentials from system keyring (set via setup_keys.py)
-# ---------------------------------------------------------------------------
 
 GITHUB_API = "https://api.github.com"
 
