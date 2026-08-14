@@ -40,6 +40,27 @@ def handler(context, repo, pull_number, commit_title=None):
     """Merge a pull request."""
     h = auth_headers()
 
+    # Check PR state before attempting merge
+    pr_resp = httpx.get(
+        f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/pulls/{pull_number}",
+        headers=h,
+    )
+    pr_resp.raise_for_status()
+    pr_data = pr_resp.json()
+
+    if pr_data.get("merged"):
+        return json.dumps({
+            "error": f"PR #{pull_number} is already merged",
+            "merged_at": pr_data.get("merged_at"),
+            "repo": f"{GITHUB_OWNER}/{repo}",
+        })
+
+    if pr_data.get("state") != "open":
+        return json.dumps({
+            "error": f"PR #{pull_number} is {pr_data.get('state')}, not open",
+            "repo": f"{GITHUB_OWNER}/{repo}",
+        })
+
     payload = {"merge_method": "merge"}
     if commit_title:
         payload["commit_title"] = commit_title
