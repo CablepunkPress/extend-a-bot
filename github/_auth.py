@@ -1,6 +1,6 @@
 """Shared GitHub App authentication.
 
-Credentials come from the system keyring (set via setup_keys.py).
+Credentials come from the system keyring (set via add_secrets.py).
 User configuration comes from _config.py (edit after installation).
 """
 
