@@ -71,3 +71,7 @@ Consumers of the manifest:
 - `build.py` — installs packages listed in `dependencies`
 - `add_secrets.py` — prompts for entries listed in `secrets`
 - `trust` — reserved for future write confirmation gate
+
+## License
+
+MIT
