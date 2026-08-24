@@ -64,9 +64,8 @@ because the loader manages `sys.path` for them.
 ## How Groups Are Installed
 
 `add_tools.py` in the agent repo downloads this repository as a
-GitHub tarball, extracts the named directory into `tools/`, and
-prints next steps from the manifest.
-
+GitHub tarball, extracts the named directory into `tools/`, installs
+pip dependencies declared in the manifest, and prints next steps.
 `--update` overwrites all files except those listed in `tool.json`'s
 `config` section. If the new manifest introduces config files that
 didn't exist before, they're installed and the user is told to
