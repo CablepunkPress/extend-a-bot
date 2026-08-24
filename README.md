@@ -7,14 +7,14 @@ Drop-in plugin tool groups for [Basic Bot](https://github.com/CablepunkPress/bas
 
 ## Installation
 
-From your agent directory:
+From your agent directory (after running `python build.py`):
 
 ```bash
 python add_tools.py github
 ```
 
-This copies the tool group into your `tools/` directory.
-Follow the printed instructions to configure it.
+This copies the tool group into your `tools/` directory and installs
+its pip dependencies. Follow the printed instructions to configure it.
 
 ## Available Tool Groups
 
@@ -67,8 +67,7 @@ See `github/` as the reference implementation.
 
 Consumers of the manifest:
 
-- `add_tools.py` — prints next steps after install; `--update` protects files listed in `config`
-- `build.py` — installs packages listed in `dependencies`
+- `add_tools.py` — installs packages listed in `dependencies`, prints next steps after install; `--update` protects files listed in `config`
 - `add_secrets.py` — prompts for entries listed in `secrets`
 - `trust` — reserved for future write confirmation gate
 
