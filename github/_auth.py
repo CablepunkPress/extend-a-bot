@@ -1,4 +1,4 @@
-"""Shared GitHub App authentication.
+"""Shared GitHub App authentication and utilities.
 
 Credentials come from the system keyring (set via add_secrets.py).
 User configuration comes from _config.py (edit after installation).
@@ -76,3 +76,8 @@ def auth_headers() -> dict:
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github+json",
     }
+
+
+def normalize_repo(repo: str) -> str:
+    """Strip owner prefix if the model passed 'owner/repo' instead of 'repo'."""
+    return repo.split("/")[-1] if "/" in repo else repo
