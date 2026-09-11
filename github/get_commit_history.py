@@ -42,6 +42,7 @@ TOOL = {
 
 def handler(context, repo, path=None, branch=None, limit=10):
     """Get recent commit history for a repository."""
+    repo = normalize_repo(repo)
     limit = min(max(int(limit), 1), 30)
     params = {"per_page": limit}
     if path:

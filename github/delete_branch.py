@@ -34,6 +34,7 @@ TOOL = {
 
 def handler(context, repo, branch):
     """Delete a branch from a GitHub repository."""
+    repo = normalize_repo(repo)
     h = auth_headers()
 
     # Guard: refuse to delete the default branch

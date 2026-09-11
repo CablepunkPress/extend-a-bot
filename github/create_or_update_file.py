@@ -56,6 +56,7 @@ TOOL = {
 
 def handler(context, repo, path, content, message, branch=None):
     """Create or update a file in a GitHub repository."""
+    repo = normalize_repo(repo)
     logger.info("Creating/updating %s/%s/%s", GITHUB_OWNER, repo, path)
     url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
     h = auth_headers()

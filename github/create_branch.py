@@ -38,6 +38,7 @@ TOOL = {
 
 def handler(context, repo, branch, from_ref=None):
     """Create a new branch in a GitHub repository."""
+    repo = normalize_repo(repo)
     h = auth_headers()
 
     # Resolve the source SHA

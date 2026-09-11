@@ -27,6 +27,7 @@ TOOL = {
 
 def handler(context, repo):
     """List branches in a GitHub repository."""
+    repo = normalize_repo(repo)
     h = auth_headers()
 
     # Get the default branch name

@@ -46,6 +46,7 @@ TOOL = {
 
 def handler(context, repo, branch, title, body=None, base=None):
     """Create a pull request in a GitHub repository."""
+    repo = normalize_repo(repo)
     h = auth_headers()
 
     # Resolve the base branch if not specified

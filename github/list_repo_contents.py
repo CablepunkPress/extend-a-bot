@@ -37,6 +37,7 @@ TOOL = {
 
 def handler(context, repo, path=""):
     """List files and directories at a path in a GitHub repository."""
+    repo = normalize_repo(repo)
     logger.info("Listing contents of %s/%s/%s", GITHUB_OWNER, repo, path or "(root)")
     url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
     resp = httpx.get(url, headers=auth_headers())

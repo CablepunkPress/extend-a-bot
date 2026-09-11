@@ -38,6 +38,7 @@ TOOL = {
 
 def handler(context, repo, pull_number, commit_title=None):
     """Merge a pull request."""
+    repo = normalize_repo(repo)
     h = auth_headers()
 
     # Check PR state before attempting merge

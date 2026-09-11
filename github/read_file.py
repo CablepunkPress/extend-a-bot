@@ -32,6 +32,7 @@ TOOL = {
 
 def handler(context, repo, path):
     """Read the contents of a file in a GitHub repository."""
+    repo = normalize_repo(repo)
     logger.info("Reading file %s/%s/%s", GITHUB_OWNER, repo, path)
     url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
     resp = httpx.get(url, headers=auth_headers())

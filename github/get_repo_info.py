@@ -29,6 +29,7 @@ TOOL = {
 
 def handler(context, repo):
     """Get metadata about a repository."""
+    repo = normalize_repo(repo)
     resp = httpx.get(
         f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}",
         headers=auth_headers(),

@@ -51,6 +51,7 @@ TOOL = {
 
 def handler(context, repo, path, message, branch=None):
     """Delete a file from a GitHub repository."""
+    repo = normalize_repo(repo)
     logger.info("Deleting %s/%s/%s", GITHUB_OWNER, repo, path)
     url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
     h = auth_headers()
