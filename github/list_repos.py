@@ -45,5 +45,5 @@ def handler(context, **_):
     if not repos:
         return "No repositories are accessible."
 
-    lines = [f"- {r['full_name']} (default branch: {r['default_branch']})" for r in repos]
+    lines = [f"- {r['repo']} (default branch: {r['default_branch']})" for r in repos]
     return f"{len(repos)} repositories accessible:\n" + "\n".join(lines)
