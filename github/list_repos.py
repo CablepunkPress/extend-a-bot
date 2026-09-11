@@ -1,4 +1,4 @@
-"""Tool: list repositories accessible to the Cablepunk GitHub App."""
+"""Tool: List repositories accessible to the configured GitHub App."""
 
 import logging
 
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 TOOL = {
     "name": "list_repos",
     "description": (
-        f"List all repositories the Cablepunk GitHub App can access "
+        f"List all repositories the GitHub App can access "
         f"under the {GITHUB_OWNER} organization. "
         f"Use this to discover what repos are available before calling other GitHub tools."
     ),
