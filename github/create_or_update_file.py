@@ -7,7 +7,15 @@ import re
 
 import httpx
 
-from _auth import GITHUB_API, GITHUB_OWNER, GITHUB_COMMITTER_NAME, GITHUB_COMMITTER_EMAIL, GITHUB_COAUTHOR, auth_headers
+from _auth import (
+    GITHUB_API,
+    GITHUB_OWNER,
+    GITHUB_COMMITTER_NAME,
+    GITHUB_COMMITTER_EMAIL,
+    GITHUB_COAUTHOR,
+    auth_headers,
+    normalize_repo,
+)
 
 logger = logging.getLogger(__name__)
 

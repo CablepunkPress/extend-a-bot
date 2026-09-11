@@ -4,7 +4,7 @@ import logging
 
 import httpx
 
-from _auth import GITHUB_API, GITHUB_OWNER, auth_headers
+from _auth import GITHUB_API, GITHUB_OWNER, auth_headers, normalize_repo
 
 logger = logging.getLogger(__name__)
 
