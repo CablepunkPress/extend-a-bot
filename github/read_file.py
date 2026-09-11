@@ -24,18 +24,27 @@ TOOL = {
                 "type": "string",
                 "description": "File path within the repository (e.g., 'README.md')",
             },
+            "ref": {
+                "type": "string",
+                "description": "Optional: branch, tag, or commit SHA to read from. Defaults to the repo's default branch.",
+            },
         },
         "required": ["repo", "path"],
     },
 }
 
 
-def handler(context, repo, path):
+def handler(context, repo, path, ref=None):
     """Read the contents of a file in a GitHub repository."""
     repo = normalize_repo(repo)
     logger.info("Reading file %s/%s/%s", GITHUB_OWNER, repo, path)
     url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
-    resp = httpx.get(url, headers=auth_headers())
+
+    params = {}
+    if ref:
+        params["ref"] = ref
+
+    resp = httpx.get(url, headers=auth_headers(), params=params)
     if resp.status_code == 404:
         return json.dumps({"error": f"File not found: {path}"})
     resp.raise_for_status()
