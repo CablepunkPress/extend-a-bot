@@ -1,5 +1,5 @@
 # Extend-A-Bot
 
-Plugin tool groups for [Basic Bot](https://github.com/CablepunkPress/basic-bot) AI engine agents.
+Plugin tools for [Basic Bot](https://github.com/CablepunkPress/basic-bot) AI engine agents.
 
 Part of [Bountiful](https://github.com/CablepunkPress/bountiful).
