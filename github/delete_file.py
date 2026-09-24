@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "delete_file",
-    "description": (
+        "description": (
         f"Delete a file from a {GITHUB_OWNER} repository. "
-        f"Commits the deletion to the specified branch, or the repo's default branch if none given."
+        f"A branch must be specified — direct commits to the default branch are not allowed."
     ),
     "input_schema": {
         "type": "object",
@@ -55,6 +55,17 @@ def handler(context, repo, path, message, branch=None):
     logger.info("Deleting %s/%s/%s", GITHUB_OWNER, repo, path)
     url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
     h = auth_headers()
+
+    # Guard: refuse to commit directly to the default branch
+    repo_resp = httpx.get(f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}", headers=h)
+    repo_resp.raise_for_status()
+    default_branch = repo_resp.json()["default_branch"]
+
+    if not branch or branch == default_branch:
+        return json.dumps({
+            "error": f"Direct commits to '{default_branch}' are not allowed. "
+            f"Create a branch first, then commit to it."
+        })
 
     # Strip any co-author trailers the model may have added
     message = re.sub(r'\n*Co-authored-by:.*', '', message, flags=re.IGNORECASE).strip()
