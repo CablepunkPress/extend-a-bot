@@ -1,11 +1,19 @@
-"""Tool: merge a pull request in a GitHub repository."""
+"""Tool: merge a pull request in a GitHub repository.
+
+Altered:    Merging is now reserved for human review.
+            The delete branch tool for cleanup has also been removed.
+
+The handler returns an error directing the assistant to inform the user 
+they must handle it.
+
+The tool stays in the catalog so the model understands the workflow:
+PRs get merged.
+"""
 
 import json
 import logging
 
-import httpx
-
-from _auth import GITHUB_API, GITHUB_OWNER, auth_headers, normalize_repo
+from _auth import GITHUB_OWNER, normalize_repo
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +21,7 @@ TOOL = {
     "name": "merge_pull_request",
     "description": (
         f"Merge an open pull request in a {GITHUB_OWNER} repository. "
-        f"Uses merge commit (not squash or rebase) to preserve commit history."
+        f"Merging is reserved for human review on GitHub."
     ),
     "input_schema": {
         "type": "object",
@@ -26,60 +34,16 @@ TOOL = {
                 "type": "integer",
                 "description": "Pull request number",
             },
-            "commit_title": {
-                "type": "string",
-                "description": "Optional: custom merge commit title. Defaults to GitHub's standard merge message.",
-            },
         },
         "required": ["repo", "pull_number"],
     },
 }
 
 
-def handler(context, repo, pull_number, commit_title=None):
-    """Merge a pull request."""
+def handler(context, repo, pull_number, **_):
+    """Merge is reserved for human review."""
     repo = normalize_repo(repo)
-    h = auth_headers()
-
-    # Check PR state before attempting merge
-    pr_resp = httpx.get(
-        f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/pulls/{pull_number}",
-        headers=h,
-    )
-    pr_resp.raise_for_status()
-    pr_data = pr_resp.json()
-
-    if pr_data.get("merged"):
-        return json.dumps({
-            "error": f"PR #{pull_number} is already merged",
-            "merged_at": pr_data.get("merged_at"),
-            "repo": f"{GITHUB_OWNER}/{repo}",
-        })
-
-    if pr_data.get("state") != "open":
-        return json.dumps({
-            "error": f"PR #{pull_number} is {pr_data.get('state')}, not open",
-            "repo": f"{GITHUB_OWNER}/{repo}",
-        })
-
-    payload = {"merge_method": "merge"}
-    if commit_title:
-        payload["commit_title"] = commit_title
-
-    resp = httpx.put(
-        f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/pulls/{pull_number}/merge",
-        headers=h,
-        json=payload,
-    )
-    resp.raise_for_status()
-
-    data = resp.json()
-    logger.info("Merged PR #%d on %s/%s (sha: %s)", pull_number, GITHUB_OWNER, repo, data["sha"][:7])
-
     return json.dumps({
-        "status": "merged",
-        "sha": data["sha"][:7],
-        "message": data.get("message", "Pull request merged"),
-        "repo": f"{GITHUB_OWNER}/{repo}",
-        "pull_number": pull_number,
+        "error": "Pull requests must be reviewed and merged by a human on GitHub. "
+        f"Review PR #{pull_number} at https://github.com/{GITHUB_OWNER}/{repo}/pull/{pull_number}",
     })
