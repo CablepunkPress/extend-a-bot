@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "create_or_update_file",
-        "description": (
+    "description": (
         f"Create or update a file in a {GITHUB_OWNER} repository. "
         f"A branch must be specified — direct commits to the default branch are not allowed."
     ),
@@ -46,10 +46,10 @@ TOOL = {
             },
             "branch": {
                 "type": "string",
-                "description": "Optional: branch to commit to. Defaults to the repo's default branch.",
+                "description": "Branch to commit to. Must not be the default branch — create a branch first.",
             },
         },
-        "required": ["repo", "path", "content", "message"],
+        "required": ["repo", "path", "content", "message", "branch"],
     },
 }
 
@@ -79,12 +79,9 @@ def handler(context, repo, path, content, message, branch=None):
     if GITHUB_COAUTHOR:
         message = f"{message}\n\nCo-authored-by: {GITHUB_COAUTHOR}"
 
-    params = {}
-    if branch:
-        params["ref"] = branch
-
+    # Check whether the file already exists on the branch
     sha = None
-    existing = httpx.get(url, headers=h, params=params)
+    existing = httpx.get(url, headers=h, params={"ref": branch})
     if existing.status_code == 200:
         sha = existing.json()["sha"]
         logger.info("File exists, updating (sha=%s)", sha[:7])
@@ -99,11 +96,10 @@ def handler(context, repo, path, content, message, branch=None):
         "content": base64.b64encode(content.encode()).decode(),
         "committer": committer,
         "author": committer,
+        "branch": branch,
     }
     if sha:
         payload["sha"] = sha
-    if branch:
-        payload["branch"] = branch
 
     resp = httpx.put(url, headers=h, json=payload)
     resp.raise_for_status()
