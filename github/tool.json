@@ -1,9 +1,9 @@
 {
     "name": "github",
     "description": "GitHub repository tools via GitHub App — branches, PRs, file operations, commit history",
-    "version": "2.2.0",
     "dependencies": [
         "httpx",
+        "keyring",
         "pyjwt[crypto]"
     ],
     "secrets": [
