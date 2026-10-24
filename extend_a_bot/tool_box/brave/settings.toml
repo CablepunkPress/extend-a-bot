@@ -1,0 +1,19 @@
+# This agent's settings for Brave Search.
+#
+# This file turning up in the agent's tools/ folder is what turns Brave
+# Search on; 'bountiful remove <agent> brave' turns it off. The API key
+# is kept in your system's keyring, not here: 'bountiful keys <agent> brave'.
+#
+# Brave's Search plan charges per search after a monthly free credit,
+# so every search the agent makes counts against it.
+
+# The country whose results to favor, as a two-letter code such as
+# "US" or "PL". Leave it empty to let Brave decide.
+country = ""
+
+# The language of the results, such as "en" or "pl". Leave it empty
+# to let Brave decide.
+search_lang = ""
+
+# Filtering of adult content: "off", "moderate", or "strict".
+safesearch = "moderate"
