@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "extend-a-bot"
+dynamic = ["version"]
+description = "Curated tool groups for Bountiful's agents"
+requires-python = ">=3.14"
+# The curated groups' own needs. keyring holds each agent's keys.
+dependencies = [
+    "httpx",
+    "keyring",
+    "pyjwt[crypto]",
+]
+
+# Plugs the tool box into basic-bot's tools jack. basic-bot finds the
+# folder through this entry point and never names this package.
+[project.entry-points."basic_bot.tool_box"]
+extend_a_bot = "extend_a_bot:TOOL_BOX"
+
+[tool.pyright]
+pythonVersion = "3.14"
+
+[tool.setuptools.dynamic]
+version = {attr = "extend_a_bot.__version__"}
+
+# The tool groups are folders of plain .py files loaded by path, not
+# imported as packages, so they're found as namespace packages and
+# shipped whole.
+[tool.setuptools.packages.find]
+include = ["extend_a_bot*"]
+namespaces = true
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.toml", "*.md"]
