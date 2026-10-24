@@ -4,15 +4,15 @@ import logging
 
 import httpx
 
-from _auth import GITHUB_API, GITHUB_OWNER, auth_headers, normalize_repo
+from _auth import GITHUB_API, auth_headers, normalize_repo, owner
 
 logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "get_repo_info",
     "description": (
-        f"Get metadata about a {GITHUB_OWNER} repository: description, "
-        f"default branch, visibility, last push time, open issues count."
+        "Get metadata about a {{ owner }} repository: description, "
+        "default branch, visibility, last push time, open issues count."
     ),
     "input_schema": {
         "type": "object",
@@ -29,10 +29,11 @@ TOOL = {
 
 def handler(context, repo):
     """Get metadata about a repository."""
+    account = owner(context)
     repo = normalize_repo(repo)
     resp = httpx.get(
-        f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}",
-        headers=auth_headers(),
+        f"{GITHUB_API}/repos/{account}/{repo}",
+        headers=auth_headers(context),
     )
     resp.raise_for_status()
     data = resp.json()

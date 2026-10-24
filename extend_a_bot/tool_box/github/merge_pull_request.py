@@ -13,15 +13,15 @@ PRs get merged.
 import json
 import logging
 
-from _auth import GITHUB_OWNER, normalize_repo
+from _auth import normalize_repo, owner
 
 logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "merge_pull_request",
     "description": (
-        f"Merge an open pull request in a {GITHUB_OWNER} repository. "
-        f"Merging is reserved for human review on GitHub."
+        "Merge an open pull request in a {{ owner }} repository. "
+        "Merging is reserved for human review on GitHub."
     ),
     "input_schema": {
         "type": "object",
@@ -42,8 +42,9 @@ TOOL = {
 
 def handler(context, repo, pull_number, **_):
     """Merge is reserved for human review."""
+    account = owner(context)
     repo = normalize_repo(repo)
     return json.dumps({
         "error": "Pull requests must be reviewed and merged by a human on GitHub. "
-        f"Review PR #{pull_number} at https://github.com/{GITHUB_OWNER}/{repo}/pull/{pull_number}",
+        f"Review PR #{pull_number} at https://github.com/{account}/{repo}/pull/{pull_number}",
     })

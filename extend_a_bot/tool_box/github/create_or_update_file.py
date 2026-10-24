@@ -9,12 +9,11 @@ import httpx
 
 from _auth import (
     GITHUB_API,
-    GITHUB_OWNER,
-    GITHUB_COMMITTER_NAME,
-    GITHUB_COMMITTER_EMAIL,
-    GITHUB_COAUTHOR,
     auth_headers,
+    committer,
     normalize_repo,
+    owner,
+    with_coauthor,
 )
 
 logger = logging.getLogger(__name__)
@@ -22,8 +21,8 @@ logger = logging.getLogger(__name__)
 TOOL = {
     "name": "create_or_update_file",
     "description": (
-        f"Create or update a file in a {GITHUB_OWNER} repository. "
-        f"A branch must be specified — direct commits to the default branch are not allowed."
+        "Create or update a file in a {{ owner }} repository. "
+        "A branch must be specified — direct commits to the default branch are not allowed."
     ),
     "input_schema": {
         "type": "object",
@@ -56,13 +55,15 @@ TOOL = {
 
 def handler(context, repo, path, content, message, branch=None):
     """Create or update a file in a GitHub repository."""
+    account = owner(context)
+    signature = committer(context)
     repo = normalize_repo(repo)
-    logger.info("Creating/updating %s/%s/%s", GITHUB_OWNER, repo, path)
-    url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
-    h = auth_headers()
+    logger.info("Creating/updating %s/%s/%s", account, repo, path)
+    url = f"{GITHUB_API}/repos/{account}/{repo}/contents/{path}"
+    h = auth_headers(context)
 
     # Guard: refuse to commit directly to the default branch
-    repo_resp = httpx.get(f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}", headers=h)
+    repo_resp = httpx.get(f"{GITHUB_API}/repos/{account}/{repo}", headers=h)
     repo_resp.raise_for_status()
     default_branch = repo_resp.json()["default_branch"]
 
@@ -72,12 +73,10 @@ def handler(context, repo, path, content, message, branch=None):
             f"Create a branch first, then commit to it."
         })
 
-    # Strip any co-author trailers the model may have added
+    # Strip any co-author trailers the model may have added, then add
+    # the agent's own, if its settings name one
     message = re.sub(r'\n*Co-authored-by:.*', '', message, flags=re.IGNORECASE).strip()
-
-    # Append co-author trailer if configured
-    if GITHUB_COAUTHOR:
-        message = f"{message}\n\nCo-authored-by: {GITHUB_COAUTHOR}"
+    message = with_coauthor(context, message)
 
     # Check whether the file already exists on the branch
     sha = None
@@ -86,16 +85,11 @@ def handler(context, repo, path, content, message, branch=None):
         sha = existing.json()["sha"]
         logger.info("File exists, updating (sha=%s)", sha[:7])
 
-    committer = {
-        "name": GITHUB_COMMITTER_NAME,
-        "email": GITHUB_COMMITTER_EMAIL,
-    }
-
     payload = {
         "message": message,
         "content": base64.b64encode(content.encode()).decode(),
-        "committer": committer,
-        "author": committer,
+        "committer": signature,
+        "author": signature,
         "branch": branch,
     }
     if sha:

@@ -5,17 +5,17 @@ import logging
 
 import httpx
 
-from _auth import GITHUB_API, GITHUB_OWNER, auth_headers, normalize_repo
+from _auth import GITHUB_API, auth_headers, normalize_repo, owner
 
 logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "list_repo_contents",
     "description": (
-        f"List files and directories at a path in a {GITHUB_OWNER} repository. "
-        f"Returns one level only. When results include directories (type='dir'), "
-        f"call this tool again with each directory path to explore its contents. "
-        f"Never assume a directory is empty without checking."
+        "List files and directories at a path in a {{ owner }} repository. "
+        "Returns one level only. When results include directories (type='dir'), "
+        "call this tool again with each directory path to explore its contents. "
+        "Never assume a directory is empty without checking."
     ),
     "input_schema": {
         "type": "object",
@@ -37,10 +37,11 @@ TOOL = {
 
 def handler(context, repo, path=""):
     """List files and directories at a path in a GitHub repository."""
+    account = owner(context)
     repo = normalize_repo(repo)
-    logger.info("Listing contents of %s/%s/%s", GITHUB_OWNER, repo, path or "(root)")
-    url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
-    resp = httpx.get(url, headers=auth_headers())
+    logger.info("Listing contents of %s/%s/%s", account, repo, path or "(root)")
+    url = f"{GITHUB_API}/repos/{account}/{repo}/contents/{path}"
+    resp = httpx.get(url, headers=auth_headers(context))
     resp.raise_for_status()
 
     data = resp.json()

@@ -4,16 +4,16 @@ import logging
 
 import httpx
 
-from _auth import GITHUB_API, GITHUB_OWNER, auth_headers
+from _auth import GITHUB_API, auth_headers
 
 logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "list_repos",
     "description": (
-        f"List all repositories the GitHub App can access "
-        f"under the {GITHUB_OWNER} organization. "
-        f"Use this to discover what repos are available before calling other GitHub tools."
+        "List all repositories the GitHub App can access "
+        "in the {{ owner }} account. "
+        "Use this to discover what repos are available before calling other GitHub tools."
     ),
     "input_schema": {
         "type": "object",
@@ -26,7 +26,7 @@ def handler(context, **_):
     """List repositories accessible to the installation."""
     resp = httpx.get(
         f"{GITHUB_API}/installation/repositories",
-        headers=auth_headers(),
+        headers=auth_headers(context),
         params={"per_page": 100},
     )
     resp.raise_for_status()

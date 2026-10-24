@@ -5,15 +5,15 @@ import logging
 
 import httpx
 
-from _auth import GITHUB_API, GITHUB_OWNER, auth_headers, normalize_repo
+from _auth import GITHUB_API, auth_headers, normalize_repo, owner
 
 logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "create_branch",
     "description": (
-        f"Create a new branch in a {GITHUB_OWNER} repository. "
-        f"Branches from the repo's default branch unless a source ref is specified."
+        "Create a new branch in a {{ owner }} repository. "
+        "Branches from the repo's default branch unless a source ref is specified."
     ),
     "input_schema": {
         "type": "object",
@@ -38,19 +38,20 @@ TOOL = {
 
 def handler(context, repo, branch, from_ref=None):
     """Create a new branch in a GitHub repository."""
+    account = owner(context)
     repo = normalize_repo(repo)
-    h = auth_headers()
+    h = auth_headers(context)
 
     # Resolve the source SHA
     if not from_ref:
         # Get the repo's default branch
-        repo_resp = httpx.get(f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}", headers=h)
+        repo_resp = httpx.get(f"{GITHUB_API}/repos/{account}/{repo}", headers=h)
         repo_resp.raise_for_status()
         from_ref = repo_resp.json()["default_branch"]
 
     # Get the SHA of the source ref
     ref_resp = httpx.get(
-        f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/git/ref/heads/{from_ref}",
+        f"{GITHUB_API}/repos/{account}/{repo}/git/ref/heads/{from_ref}",
         headers=h,
     )
     ref_resp.raise_for_status()
@@ -58,7 +59,7 @@ def handler(context, repo, branch, from_ref=None):
 
     # Create the new branch
     create_resp = httpx.post(
-        f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/git/refs",
+        f"{GITHUB_API}/repos/{account}/{repo}/git/refs",
         headers=h,
         json={
             "ref": f"refs/heads/{branch}",
@@ -67,11 +68,11 @@ def handler(context, repo, branch, from_ref=None):
     )
     create_resp.raise_for_status()
 
-    logger.info("Created branch %s/%s:%s from %s", GITHUB_OWNER, repo, branch, source_sha[:7])
+    logger.info("Created branch %s/%s:%s from %s", account, repo, branch, source_sha[:7])
 
     return json.dumps({
         "status": "created",
         "branch": branch,
         "from_sha": source_sha[:7],
-        "repo": f"{GITHUB_OWNER}/{repo}",
+        "repo": f"{account}/{repo}",
     })

@@ -5,13 +5,13 @@ import logging
 
 import httpx
 
-from _auth import GITHUB_API, GITHUB_OWNER, auth_headers, normalize_repo
+from _auth import GITHUB_API, auth_headers, normalize_repo, owner
 
 logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "list_branches",
-    "description": f"List branches in a {GITHUB_OWNER} repository.",
+    "description": "List branches in a {{ owner }} repository.",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -27,17 +27,18 @@ TOOL = {
 
 def handler(context, repo):
     """List branches in a GitHub repository."""
+    account = owner(context)
     repo = normalize_repo(repo)
-    h = auth_headers()
+    h = auth_headers(context)
 
     # Get the default branch name
-    repo_resp = httpx.get(f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}", headers=h)
+    repo_resp = httpx.get(f"{GITHUB_API}/repos/{account}/{repo}", headers=h)
     repo_resp.raise_for_status()
     default_branch = repo_resp.json()["default_branch"]
 
     # List all branches
     resp = httpx.get(
-        f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/branches",
+        f"{GITHUB_API}/repos/{account}/{repo}/branches",
         headers=h,
         params={"per_page": 100},
     )

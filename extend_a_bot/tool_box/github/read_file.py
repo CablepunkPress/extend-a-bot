@@ -6,13 +6,13 @@ import logging
 
 import httpx
 
-from _auth import GITHUB_API, GITHUB_OWNER, auth_headers, normalize_repo
+from _auth import GITHUB_API, auth_headers, normalize_repo, owner
 
 logger = logging.getLogger(__name__)
 
 TOOL = {
     "name": "read_file",
-    "description": f"Read the contents of a file in a {GITHUB_OWNER} repository.",
+    "description": "Read the contents of a file in a {{ owner }} repository.",
     "input_schema": {
         "type": "object",
         "properties": {
@@ -37,14 +37,15 @@ TOOL = {
 def handler(context, repo, path, ref=None):
     """Read the contents of a file in a GitHub repository."""
     repo = normalize_repo(repo)
-    logger.info("Reading file %s/%s/%s", GITHUB_OWNER, repo, path)
-    url = f"{GITHUB_API}/repos/{GITHUB_OWNER}/{repo}/contents/{path}"
+    account = owner(context)
+    logger.info("Reading file %s/%s/%s", account, repo, path)
+    url = f"{GITHUB_API}/repos/{account}/{repo}/contents/{path}"
 
     params = {}
     if ref:
         params["ref"] = ref
 
-    resp = httpx.get(url, headers=auth_headers(), params=params)
+    resp = httpx.get(url, headers=auth_headers(context), params=params)
     if resp.status_code == 404:
         return json.dumps({"error": f"File not found: {path}"})
     resp.raise_for_status()
