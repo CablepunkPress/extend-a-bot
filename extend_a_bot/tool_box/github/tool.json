@@ -1,49 +1,11 @@
 {
     "name": "github",
-    "description": "GitHub repository tools via GitHub App — branches, PRs, file operations, commit history",
-    "dependencies": [
-        "httpx",
-        "keyring",
-        "pyjwt[crypto]"
+    "description": "Read and propose changes in GitHub repositories: branches, files, commit history, and pull requests, through a GitHub App you create",
+    "sends": "Repository names, file paths, and any changes the agent proposes go to GitHub, under your GitHub App.",
+    "keys": [
+        {"name": "app_id", "label": "GitHub App ID"},
+        {"name": "installation_id", "label": "GitHub App installation ID"},
+        {"name": "private_key", "label": "GitHub App private key (its .pem file)", "from_file": true}
     ],
-    "secrets": [
-        {
-            "service": "github-tools",
-            "key": "github_app_id",
-            "label": "GitHub App ID"
-        },
-        {
-            "service": "github-tools",
-            "key": "github_installation_id",
-            "label": "GitHub Installation ID"
-        },
-        {
-            "service": "github-tools",
-            "key": "github_private_key",
-            "label": "GitHub App private key (PEM format)"
-        }
-    ],
-    "config": [
-        {
-            "file": "_config.py",
-            "name": "GITHUB_OWNER",
-            "label": "GitHub org or personal account name"
-        },
-        {
-            "file": "_config.py",
-            "name": "GITHUB_COMMITTER_NAME",
-            "label": "Git committer display name"
-        },
-        {
-            "file": "_config.py",
-            "name": "GITHUB_COMMITTER_EMAIL",
-            "label": "Git committer email (noreply recommended)"
-        },
-        {
-            "file": "_config.py",
-            "name": "GITHUB_COAUTHOR",
-            "label": "Co-author trailer (Name <email> format, or leave empty)"
-        }
-    ],
-    "trust": "read_write"
+    "required_settings": ["owner", "committer_name", "committer_email"]
 }

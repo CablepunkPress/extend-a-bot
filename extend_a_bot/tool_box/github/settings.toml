@@ -1,0 +1,18 @@
+# This agent's settings for the GitHub tools.
+#
+# This file turning up in the agent's tools/ folder is what turns the
+# GitHub tools on; 'bountiful remove <agent> github' turns them off.
+# The keys (the GitHub App's ID, installation ID, and private key) are
+# kept in your system's keyring, not here: 'bountiful keys <agent> github'.
+
+# The GitHub account or organization whose repositories the agent works in
+owner = ""
+
+# How the agent's commits are signed in the repository's history.
+# A noreply address keeps your real one private.
+committer_name = ""
+committer_email = ""
+
+# A Co-authored-by line added to each commit message, as
+# "Name <email>". Leave it empty for none.
+coauthor = ""
