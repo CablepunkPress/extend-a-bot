@@ -17,6 +17,7 @@ import getpass
 import json
 import shutil
 import sys
+import textwrap
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -125,6 +126,25 @@ def _problems(agent_id: str, agent_path: Path, group: Group) -> list[str]:
     return problems
 
 
+def _say(text: str, indent: int = 0, bullet: bool = False) -> None:
+    """Print text wrapped to the terminal's width, every line indented.
+
+    With bullet, the first line starts with "- " and the lines after
+    it line up under the text, not the dash.
+
+    The descriptions here are for people, from each group's tool.json;
+    the model reads the TOOL descriptions in the tools themselves.
+    """
+    width = min(shutil.get_terminal_size().columns, 100)
+    pad = " " * indent
+    print(textwrap.fill(
+        text, width=max(width, 40),
+        initial_indent=pad + ("- " if bullet else ""),
+        subsequent_indent=pad + ("  " if bullet else ""),
+        break_on_hyphens=False, break_long_words=False,
+    ))
+
+
 def _tilde(path: Path) -> str:
     """A path with the home folder written as ~."""
     try:
@@ -144,9 +164,9 @@ def show_available(agents: list[tuple[str, Path]]) -> None:
     for group in groups.values():
         users = [agent_id for agent_id, path in agents if uses(path, group.name)]
         print(f"  {group.name}")
-        print(f"      {group.description}")
-        print(f"      used by: {', '.join(users) if users else 'no agent'}")
-    print("\nTurn one on for an agent with: bountiful add <agent> <group>")
+        _say(group.description, indent=6)
+        _say(f"used by: {', '.join(users) if users else 'no agent'}", indent=6)
+    print("\nEnable for an agent with: bountiful add ID GROUP")
 
 
 def show_agent(agent_id: str, agent_path: Path) -> None:
@@ -162,7 +182,7 @@ def show_agent(agent_id: str, agent_path: Path) -> None:
         problems = _problems(agent_id, agent_path, group)
         print(f"  {group.name}  {'ready' if not problems else 'needs:'}")
         for problem in problems:
-            print(f"      {problem}")
+            _say(problem, indent=6)
 
     if tools_dir.is_dir():
         for folder in sorted(tools_dir.iterdir()):
@@ -201,13 +221,14 @@ def add(agent_id: str, agent_path: Path, name: str) -> None:
             print(f"{name} is on for {agent_id}.")
 
     if group.sends:
-        print(f"\n{group.sends}")
+        print()
+        _say(group.sends)
 
     problems = _problems(agent_id, agent_path, group)
     if problems:
         print("\nBefore it works, it needs:")
         for problem in problems:
-            print(f"  - {problem}")
+            _say(problem, indent=2, bullet=True)
     print(f"\nIt takes effect the next time {agent_id} starts.")
 
 
@@ -228,12 +249,12 @@ def remove(agent_id: str, agent_path: Path, name: str) -> None:
         raise AddonError(f"{name} isn't on for {agent_id}.")
 
     settings.replace(tools_dir / f"{name}{OFF}")
-    print(f"{name} is off for {agent_id}. Its settings are kept, and come "
-          f"back if you turn it on again.")
+    _say(f"{name} is off for {agent_id}. Its settings are kept, and come "
+         f"back if you turn it on again.")
     group = available().get(name)
     if group and group.keys:
-        print(f"Its keys are still stored; 'bountiful keys {agent_id} {name} "
-              f"--delete' removes them.")
+        _say(f"Its keys are still stored; 'bountiful keys {agent_id} {name} "
+             f"--delete' removes them.")
     print(f"It takes effect the next time {agent_id} starts.")
 
 
