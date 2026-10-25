@@ -41,9 +41,12 @@ def language(context: dict) -> str:
     return code
 
 
+MAX_CHARACTERS = 4000
+
+
 def max_characters(context: dict) -> int:
-    value = context["settings"].get("max_characters", 8000)
-    return value if isinstance(value, int) and value > 0 else 8000
+    value = context["settings"].get("max_characters", MAX_CHARACTERS)
+    return value if isinstance(value, int) and value > 0 else MAX_CHARACTERS
 
 
 def article_url(lang: str, title: str) -> str:

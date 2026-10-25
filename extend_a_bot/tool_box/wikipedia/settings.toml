@@ -11,5 +11,7 @@ language = "en"
 # The most text one article read returns, in characters. A longer
 # article comes back as its opening plus a list of its sections, and
 # the agent can read a section by name. About 4 characters make a
-# token, so 8000 is about 2,000 tokens of the conversation.
-max_characters = 8000
+# token, so 4000 is about 1,000 tokens. Everything read stays in the
+# conversation until the turn ends, costing time and memory: on
+# October 25, at 8000, each article read took about 10 seconds.
+max_characters = 4000
