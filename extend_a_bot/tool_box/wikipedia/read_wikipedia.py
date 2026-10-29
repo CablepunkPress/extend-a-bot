@@ -1,8 +1,18 @@
-"""Tool: read a Wikipedia article, or one of its sections, as plain text."""
+"""Tool: read a Wikipedia article, or one of its sections, as plain text.
 
+An article's opening comes from Wikipedia's plain-text extracts. A
+section comes from the article's rendered page instead, because the
+plain-text extracts leave out anything inside a <div> or a table,
+which on Wikipedia includes most cast lists, discographies, and
+rosters laid out in columns. Reading a section that way also brings
+its subsections along, so "Cast" includes "Main cast".
+"""
+
+import html
 import json
 import logging
 import re
+from html.parser import HTMLParser
 
 import _wiki
 
@@ -14,6 +24,7 @@ TOOL = {
         "Read a Wikipedia article as plain text, by its exact title from "
         "search_wikipedia. A long article returns its opening and a list of "
         "its sections; call again with a section name to read that part. "
+        "A section includes its subsections, lists, and tables. "
         "Say that your answer comes from Wikipedia."
     ),
     "input_schema": {
@@ -35,9 +46,104 @@ TOOL = {
 # A heading in plain-text extracts: "== Career ==", "=== Early life ==="
 _HEADING = re.compile(r"^(={2,6})\s*(.+?)\s*\1\s*$", re.MULTILINE)
 
+# Parts of a rendered page that aren't part of its text: styles,
+# images, footnote markers like [5], and the reference list.
+_SKIP_TAGS = {"style", "script", "figure"}
+_SKIP_CLASSES = {
+    "reference", "mw-editsection", "noprint", "reflist",
+    "mw-references-wrap", "navbox", "metadata",
+}
+# Elements that never have a closing tag.
+_VOID_TAGS = {
+    "area", "base", "br", "col", "embed", "hr", "img", "input",
+    "link", "meta", "source", "track", "wbr",
+}
+# Elements that start on a new line.
+_BLOCK_TAGS = {"p", "div", "ul", "ol", "dl", "table", "blockquote"}
+_HEADING_TAG = re.compile(r"^h([2-6])$")
+
+
+class _PlainText(HTMLParser):
+    """Turn a rendered Wikipedia section into plain text.
+
+    Headings become "== Heading ==" lines, matching the extracts, list
+    items become "- " lines, and table cells are joined with " | ".
+    """
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.parts = []
+        # One entry per open element: its tag, and whether it or an
+        # element around it is being skipped.
+        self.stack = []
+        self.cells = 0
+
+    def _skipping(self) -> bool:
+        return bool(self.stack) and self.stack[-1][1]
+
+    def handle_starttag(self, tag, attrs):
+        if tag in _VOID_TAGS:
+            if tag == "br" and not self._skipping():
+                self.parts.append("\n")
+            return
+        classes = set((dict(attrs).get("class") or "").split())
+        skipping = (
+            self._skipping() or tag in _SKIP_TAGS or bool(classes & _SKIP_CLASSES)
+        )
+        self.stack.append((tag, skipping))
+        if skipping:
+            return
+        heading = _HEADING_TAG.match(tag)
+        if heading:
+            self.parts.append("\n\n" + "=" * int(heading.group(1)) + " ")
+        elif tag == "li":
+            self.parts.append("\n- ")
+        elif tag == "tr":
+            self.parts.append("\n")
+            self.cells = 0
+        elif tag in ("td", "th"):
+            if self.cells:
+                self.parts.append(" | ")
+            self.cells += 1
+        elif tag in ("dt", "dd"):
+            self.parts.append("\n")
+        elif tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag):
+        if tag in _VOID_TAGS:
+            return
+        # Close the nearest open element with this tag, along with
+        # anything left open inside it; ignore a stray closing tag.
+        for i in range(len(self.stack) - 1, -1, -1):
+            if self.stack[i][0] == tag:
+                skipping = self.stack[i][1]
+                del self.stack[i:]
+                break
+        else:
+            return
+        if skipping:
+            return
+        heading = _HEADING_TAG.match(tag)
+        if heading:
+            self.parts.append(" " + "=" * int(heading.group(1)) + "\n")
+        elif tag in _BLOCK_TAGS:
+            self.parts.append("\n")
+
+    def handle_data(self, data):
+        if not self._skipping():
+            self.parts.append(re.sub(r"\s+", " ", data))
+
+    def text(self) -> str:
+        lines = [
+            re.sub(r" {2,}", " ", line).strip()
+            for line in "".join(self.parts).split("\n")
+        ]
+        return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+
 
 def _sections(text: str) -> list[tuple[str, str]]:
-    """Split an article into (heading, text) pairs; the opening has heading ""."""
+    """Split an extract into (heading, text) pairs; the opening has heading ""."""
     parts = []
     last_heading, last_end = "", 0
     for match in _HEADING.finditer(text):
@@ -59,6 +165,41 @@ def _cut(text: str, limit: int) -> tuple[str, bool]:
     return cut.strip(), True
 
 
+def _find_section(lang: str, title: str, wanted: str):
+    """Look a section up by heading.
+
+    Returns ((heading, index), headings) when found, or (None, headings).
+    The index is the section's number on the rendered page.
+    """
+    data = _wiki.query(lang, {"action": "parse", "page": title, "prop": "sections"})
+    headings, found = [], None
+    for entry in data.get("parse", {}).get("sections", []):
+        index = str(entry.get("index", ""))
+        if not index.isdigit():
+            continue  # a section pulled in from another page
+        heading = html.unescape(_wiki.strip_tags(entry.get("line", ""))).strip()
+        headings.append(heading)
+        if found is None and heading.lower() == wanted:
+            found = (heading, index)
+    return found, headings
+
+
+def _section_text(lang: str, title: str, index: str) -> str:
+    """One section of the rendered page, with its subsections, as plain text."""
+    data = _wiki.query(lang, {
+        "action": "parse",
+        "page": title,
+        "prop": "text",
+        "section": index,
+        "disableeditsection": "1",
+        "disablelimitreport": "1",
+    })
+    parser = _PlainText()
+    parser.feed(data.get("parse", {}).get("text", ""))
+    parser.close()
+    return parser.text()
+
+
 def handler(context, title="", section=None):
     if not str(title).strip():
         return json.dumps({"error": "Give the title of an article to read."})
@@ -67,6 +208,8 @@ def handler(context, title="", section=None):
     limit = _wiki.max_characters(context)
     logger.info("Reading an article from %s.wikipedia.org", lang)
 
+    # The extract finds the article, following redirects, and gives
+    # its opening and its list of sections.
     data = _wiki.query(lang, {
         "action": "query",
         "prop": "extracts",
@@ -90,13 +233,18 @@ def handler(context, title="", section=None):
 
     if section:
         wanted = str(section).strip().lower()
-        matches = [(h, t) for h, t in sections if h.lower() == wanted]
-        if not matches:
+        found, page_headings = _find_section(lang, found_title, wanted)
+        if not found:
             result["error"] = f"No section named '{section}'."
-            result["sections"] = headings
+            result["sections"] = page_headings or headings
             return json.dumps(result)
-        heading, text = matches[0]
+        heading, index = found
+        text = _section_text(lang, found_title, index)
         result["section"] = heading
+        if not _HEADING.sub("", text).strip():
+            result["text"] = ""
+            result["note"] = "This section has no text on Wikipedia."
+            return json.dumps(result)
         result["text"], cut = _cut(text, limit)
         if cut:
             result["note"] = "This section was cut short for length."
