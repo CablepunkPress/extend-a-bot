@@ -77,6 +77,9 @@ class _PlainText(HTMLParser):
         # element around it is being skipped.
         self.stack = []
         self.cells = 0
+        # How many table cells are open; a line break inside one would
+        # split its row, so it becomes "; " instead.
+        self.in_cell = 0
 
     def _skipping(self) -> bool:
         return bool(self.stack) and self.stack[-1][1]
@@ -84,7 +87,7 @@ class _PlainText(HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag in _VOID_TAGS:
             if tag == "br" and not self._skipping():
-                self.parts.append("\n")
+                self.parts.append("; " if self.in_cell else "\n")
             return
         classes = set((dict(attrs).get("class") or "").split())
         skipping = (
@@ -105,6 +108,7 @@ class _PlainText(HTMLParser):
             if self.cells:
                 self.parts.append(" | ")
             self.cells += 1
+            self.in_cell += 1
         elif tag in ("dt", "dd"):
             self.parts.append("\n")
         elif tag in _BLOCK_TAGS:
@@ -118,6 +122,11 @@ class _PlainText(HTMLParser):
         for i in range(len(self.stack) - 1, -1, -1):
             if self.stack[i][0] == tag:
                 skipping = self.stack[i][1]
+                if not skipping:
+                    self.in_cell -= sum(
+                        1 for t, skip in self.stack[i:]
+                        if t in ("td", "th") and not skip
+                    )
                 del self.stack[i:]
                 break
         else:
