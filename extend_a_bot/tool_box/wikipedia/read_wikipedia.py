@@ -247,7 +247,13 @@ def handler(context, title="", section=None):
             return json.dumps(result)
         result["text"], cut = _cut(text, limit)
         if cut:
-            result["note"] = "This section was cut short for length."
+            # Drop a heading left at the end with nothing under it, so
+            # it doesn't read as an empty section.
+            result["text"] = re.sub(r"\n*^=.*=\s*\Z", "", result["text"], flags=re.MULTILINE)
+            result["note"] = (
+                "This section was cut short for length. Its subsections "
+                "can each be read by calling read_wikipedia with their name."
+            )
         return json.dumps(result)
 
     whole = page["extract"].strip()
