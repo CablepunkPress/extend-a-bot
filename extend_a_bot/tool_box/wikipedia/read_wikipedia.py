@@ -10,6 +10,13 @@ its subsections along, so "Cast" includes "Main cast".
 A result that read text names its source in "sources": the article,
 its address, and the section read, if any. The engine records it with
 the turn and takes it out before the model reads the result.
+
+It also ends with "cite", telling the model to say in its reply that
+the answer comes from Wikipedia. The rule is here rather than in the
+group's instructions because the result is the last thing the model
+reads before it answers: told only in the system prompt, the 26B
+followed the rule in its reasoning, or not at all, and left it out of
+the reply (October 31, #494 and #500).
 """
 
 import html
@@ -45,6 +52,13 @@ TOOL = {
         "required": ["title"],
     },
 }
+
+# Ends every result that read text, so it's the last thing the model
+# reads before answering
+CITE = (
+    'When you answer from this, say in your reply itself that it comes '
+    'from Wikipedia, for example: "According to Wikipedia, …"'
+)
 
 # A heading in plain-text extracts: "== Career ==", "=== Early life ==="
 _HEADING = re.compile(r"^(={2,6})\s*(.+?)\s*\1\s*$", re.MULTILINE)
@@ -220,6 +234,13 @@ def _source(result: dict) -> dict:
     return source
 
 
+def _read(result: dict) -> str:
+    """A result that read text, with its source and, last, CITE."""
+    result["sources"] = [_source(result)]
+    result["cite"] = CITE
+    return json.dumps(result)
+
+
 def handler(context, title="", section=None):
     if not str(title).strip():
         return json.dumps({"error": "Give the title of an article to read."})
@@ -261,10 +282,10 @@ def handler(context, title="", section=None):
         heading, index = found
         text = _section_text(lang, found_title, index)
         result["section"] = heading
-        result["sources"] = [_source(result)]
         if not _HEADING.sub("", text).strip():
             result["text"] = ""
             result["note"] = "This section has no text on Wikipedia."
+            result["sources"] = [_source(result)]
             return json.dumps(result)
         result["text"], cut = _cut(text, limit)
         if cut:
@@ -275,13 +296,12 @@ def handler(context, title="", section=None):
                 "This section was cut short for length. Its subsections "
                 "can each be read by calling read_wikipedia with their name."
             )
-        return json.dumps(result)
+        return _read(result)
 
-    result["sources"] = [_source(result)]
     whole = page["extract"].strip()
     if len(whole) <= limit:
         result["text"] = whole
-        return json.dumps(result)
+        return _read(result)
 
     opening = sections[0][1] if sections and not sections[0][0] else ""
     result["text"], _ = _cut(opening or whole, limit)
@@ -290,4 +310,4 @@ def handler(context, title="", section=None):
         "The article is long, so this is its opening. "
         "Read any section by calling read_wikipedia again with its name."
     )
-    return json.dumps(result)
+    return _read(result)

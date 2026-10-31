@@ -7,6 +7,13 @@ another model's summary of them, so every claim it makes traces to a
 page. A result names its pages in "sources", which the engine records
 with the turn and takes out before the model reads the result.
 
+A result with pages ends with "cite", telling the model to name in its
+reply the sites its answer comes from, with the first page's site as
+the example. The rule is here rather than in the group's instructions
+because the result is the last thing the model reads before it
+answers; told only in the system prompt, the 26B left its source out
+of the reply (October 31, #494 and #500, with Wikipedia).
+
 The agent's key is read from the keyring at call time, under its id.
 Standard library only.
 """
@@ -69,6 +76,21 @@ def _date(age) -> str:
         if isinstance(item, str) and _DATE.match(item):
             return item[:10]
     return ""
+
+
+def _site(url: str) -> str:
+    """A page's site: "https://www.example.com/a" becomes "example.com"."""
+    host = urllib.parse.urlparse(url).hostname or ""
+    return host[4:] if host.startswith("www.") else host
+
+
+def _cite(results: list[dict]) -> str:
+    """Ends a result, so it's the last thing the model reads before answering."""
+    site = next((_site(r["url"]) for r in results if _site(r["url"])), "example.com")
+    return (
+        "When you answer from these, name the sites your answer comes from "
+        f'in your reply itself, for example: "According to {site}, …"'
+    )
 
 
 def handler(context, query=""):
@@ -136,4 +158,5 @@ def handler(context, query=""):
     return json.dumps({
         "results": results,
         "sources": [{"title": r["title"], "url": r["url"]} for r in results],
+        "cite": _cite(results),
     })
