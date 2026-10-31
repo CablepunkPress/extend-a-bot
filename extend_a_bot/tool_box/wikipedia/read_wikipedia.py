@@ -6,6 +6,10 @@ plain-text extracts leave out anything inside a <div> or a table,
 which on Wikipedia includes most cast lists, discographies, and
 rosters laid out in columns. Reading a section that way also brings
 its subsections along, so "Cast" includes "Main cast".
+
+A result that read text names its source in "sources": the article,
+its address, and the section read, if any. The engine records it with
+the turn and takes it out before the model reads the result.
 """
 
 import html
@@ -209,6 +213,14 @@ def _section_text(lang: str, title: str, index: str) -> str:
     return parser.text()
 
 
+def _source(result: dict) -> dict:
+    """The page a result read, for the turn's record."""
+    source = {"title": result["title"], "url": result["url"]}
+    if result.get("section"):
+        source["section"] = result["section"]
+    return source
+
+
 def handler(context, title="", section=None):
     if not str(title).strip():
         return json.dumps({"error": "Give the title of an article to read."})
@@ -238,7 +250,7 @@ def handler(context, title="", section=None):
     found_title = page["title"]
     sections = _sections(page["extract"])
     headings = [h for h, _ in sections if h]
-    result = {"title": found_title, "url": _wiki.article_url(lang, found_title)}
+    result: dict = {"title": found_title, "url": _wiki.article_url(lang, found_title)}
 
     if section:
         wanted = str(section).strip().lower()
@@ -250,6 +262,7 @@ def handler(context, title="", section=None):
         heading, index = found
         text = _section_text(lang, found_title, index)
         result["section"] = heading
+        result["sources"] = [_source(result)]
         if not _HEADING.sub("", text).strip():
             result["text"] = ""
             result["note"] = "This section has no text on Wikipedia."
@@ -265,6 +278,7 @@ def handler(context, title="", section=None):
             )
         return json.dumps(result)
 
+    result["sources"] = [_source(result)]
     whole = page["extract"].strip()
     if len(whole) <= limit:
         result["text"] = whole

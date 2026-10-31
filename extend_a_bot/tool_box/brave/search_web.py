@@ -4,7 +4,8 @@ Uses Brave's LLM Context endpoint, which returns passages extracted
 from the pages it finds, each with its page's URL and title, within a
 token budget. The agent reads the sources themselves rather than
 another model's summary of them, so every claim it makes traces to a
-page.
+page. A result names its pages in "sources", which the engine records
+with the turn and takes out before the model reads the result.
 
 The agent's key is read from the keyring at call time, under its id.
 Standard library only.
@@ -132,5 +133,7 @@ def handler(context, query=""):
 
     if not results:
         return json.dumps({"results": [], "note": "The search found nothing relevant."})
-    return json.dumps({"results": results})
-    
+    return json.dumps({
+        "results": results,
+        "sources": [{"title": r["title"], "url": r["url"]} for r in results],
+    })
