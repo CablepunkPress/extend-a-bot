@@ -28,8 +28,7 @@ TOOL = {
         "Read a Wikipedia article as plain text, by its exact title from "
         "search_wikipedia. A long article returns its opening and a list of "
         "its sections; call again with a section name to read that part. "
-        "A section includes its subsections, lists, and tables. "
-        "Say that your answer comes from Wikipedia."
+        "A section includes its subsections, lists, and tables."
     ),
     "input_schema": {
         "type": "object",

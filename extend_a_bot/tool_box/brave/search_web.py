@@ -41,7 +41,7 @@ TOOL = {
         "from the pages found, each with its page's title, address, and date "
         "when known. Each search is paid for by the user, so search only when "
         "it will settle a question, and prefer search_wikipedia, if you have "
-        "it, for well-documented subjects. Say which sites your answer comes from."
+        "it, for well-documented subjects."
     ),
     "input_schema": {
         "type": "object",
