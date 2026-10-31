@@ -5,13 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "extend-a-bot"
 dynamic = ["version"]
-description = "Curated tool groups for Bountiful's agents"
+description = "Plugin tools for Bountiful agents"
 requires-python = ">=3.14"
-# The curated groups' own needs. keyring holds each agent's keys.
+# keyring holds each agent's keys. basic-bot, whose agent.json and
+# tool loading plugins.py uses, comes with Bountiful's own pins.
 dependencies = [
-    "httpx",
     "keyring",
-    "pyjwt[crypto]",
 ]
 
 # Plugs the tool box into basic-bot's tools jack. basic-bot finds the

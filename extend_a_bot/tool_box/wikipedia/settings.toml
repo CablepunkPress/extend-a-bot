@@ -1,8 +1,7 @@
-# This agent's settings for the Wikipedia tools.
-#
-# This file turning up in the agent's tools/ folder is what turns the
-# Wikipedia tools on; 'bountiful remove <agent> wikipedia' turns them
-# off. Wikipedia needs no key.
+# The settings an agent starts with when Wikipedia is added to it.
+# 'bountiful add wikipedia ID' copies them into the "tools" section of
+# the agent's agent.json, where they can be changed. Wikipedia needs
+# no key.
 
 # Which Wikipedia to use, by its language code: "en" is
 # en.wikipedia.org, "pl" is pl.wikipedia.org.

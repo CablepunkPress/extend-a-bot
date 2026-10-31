@@ -36,7 +36,7 @@ def language(context: dict) -> str:
     if not _LANGUAGE.match(code):
         raise WikipediaError(
             f"The Wikipedia language setting '{code}' isn't a language code "
-            f"such as 'en'. The user can fix it in the agent's tools/wikipedia.toml."
+            f"such as 'en'. The user can fix it in the agent's agent.json."
         )
     return code
 

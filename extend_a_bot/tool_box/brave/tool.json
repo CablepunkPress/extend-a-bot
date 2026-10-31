@@ -4,6 +4,5 @@
     "sends": "What the agent searches for goes to Brave Search (search.brave.com), under your Brave Search API key. Brave's Search plan charges per search after a monthly free credit.",
     "keys": [
         {"name": "api_key", "label": "Brave Search API key"}
-    ],
-    "required_settings": []
+    ]
 }

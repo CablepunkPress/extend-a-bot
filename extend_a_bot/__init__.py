@@ -1,10 +1,10 @@
-"""extend-a-bot: curated tool groups for Bountiful's agents.
+"""extend-a-bot: plugin tools for Bountiful agents.
 
 The groups live in tool_box/, one folder each, read in place by
-basic-bot through the basic_bot.tool_box entry point. An agent turns a
-group on with a settings file in its own tools/ folder, written by
-addons.add(). Each agent's keys are kept in the system keyring under
-its id (keys.py).
+basic-bot through the basic_bot.tool_box entry point. An agent adds a
+group by naming it, with its settings, in its agent.json, which
+plugins.add() writes. Each agent's keys are kept in the system keyring
+under its id (keys.py).
 """
 
 from pathlib import Path
