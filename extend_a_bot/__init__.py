@@ -9,7 +9,7 @@ under its id (keys.py).
 
 from pathlib import Path
 
-__version__ = "0.3.0"
+__version__ = "0.4.0.dev0"
 
 # The folder of tool groups, offered to basic-bot's tools jack
 TOOL_BOX = Path(__file__).parent / "tool_box"
