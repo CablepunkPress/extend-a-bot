@@ -15,7 +15,7 @@ dependencies = [
 
 # Plugs the tool box into basic-bot's tools jack. basic-bot finds the
 # folder through this entry point and never names this package.
-[project.entry-points."basic_bot.tool_box"]
+[project.entry-points."basic_bot.tool_groups"]
 extend_a_bot = "extend_a_bot:TOOL_BOX"
 
 [tool.pyright]

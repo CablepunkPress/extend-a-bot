@@ -87,7 +87,7 @@ def _groups_for(agent_path: Path) -> dict[str, Group]:
     """The groups this agent could add: plugins, with its custom groups
     taking the place of any plugin of the same name."""
     groups = plugins()
-    for name, folder in custom_groups(agent_path).items():
+    for name, folder in custom_groups(agent_path / "tools").items():
         groups[name] = _read_group(folder, "custom")
     return groups
 
@@ -128,7 +128,7 @@ def show_available(agents: list[tuple[str, Path]]) -> None:
     custom groups in the agents' folders."""
     available = plugins()
     added = {agent_id: _added(path) for agent_id, path in agents}
-    custom = {agent_id: custom_groups(path) for agent_id, path in agents}
+    custom = {agent_id: custom_groups(path / "tools") for agent_id, path in agents}
 
     print("Plugin tools")
     if not available:
