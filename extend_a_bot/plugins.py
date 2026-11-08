@@ -1,17 +1,12 @@
-"""Adding and removing an agent's tool groups.
+"""Show, add, and remove an agent's tool groups.
 
-The bountiful command calls these, passing the agent's id and folder;
-they do the work and print what happened, so the command only routes.
-
-A tool group is a plugin, from this package's tool_box/, or custom,
-the user's own folder in the agent's tools/. Either is added to an
-agent by naming it in the "tools" section of the agent's agent.json,
-with its settings, and a custom folder of the same name as a plugin
-takes its place. A group is never added half way: keys it needs are
-asked for and stored first, and if one isn't given, nothing is added.
-Removing a group deletes its settings and its keys together. Keys live
-in the system keyring under the agent's id (keys.py). A change takes
-effect the next time the agent starts.
+The bountiful command calls these and passes what only it knows: the
+groups every agent has, and the folder of custom groups. A group is
+added to an agent by naming it, with its settings, in agent.json. The
+keys a group needs are asked for and stored in the system keyring
+first, and if one isn't given, nothing is added. Removing a group
+deletes its settings and keys together. A change takes effect the next
+time the agent starts.
 """
 
 import getpass
@@ -24,12 +19,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from basic_bot.agent import AgentError, load_agent, tool_groups, write_tools
-from basic_bot.tools import MANIFEST, custom_groups
+from basic_bot.tools import MANIFEST, MEMORY_GROUP, SETTINGS, custom_groups, offered_groups
 
-from extend_a_bot import TOOL_BOX
 from extend_a_bot.keys import KeyringUnavailable, delete_key, set_key
 
-DEFAULTS = "settings.toml"
+CUSTOM = "custom"
 
 
 class PluginError(RuntimeError):
@@ -38,17 +32,18 @@ class PluginError(RuntimeError):
 
 @dataclass(frozen=True)
 class Group:
-    """A tool group, as its manifest describes it."""
+    """A tool group, as its tool.json describes it."""
     name: str
-    kind: str
+    source: str
     description: str
     sends: str
     keys: list[dict]
     folder: Path
+    tools: list[str]
 
     def defaults(self) -> dict:
-        """The settings a newly added group starts with."""
-        path = self.folder / DEFAULTS
+        """Return the settings a newly added group starts with."""
+        path = self.folder / SETTINGS
         if not path.exists():
             return {}
         try:
@@ -57,7 +52,8 @@ class Group:
             raise PluginError(f"{path} couldn't be read: {e}") from e
 
 
-def _read_group(folder: Path, kind: str) -> Group:
+def _read_group(folder: Path, source: str) -> Group:
+    """Read a group's tool.json and the names of its tools."""
     try:
         data = json.loads((folder / MANIFEST).read_text())
     except (OSError, ValueError):
@@ -66,30 +62,31 @@ def _read_group(folder: Path, kind: str) -> Group:
         data = {}
     return Group(
         name=folder.name,
-        kind=kind,
+        source=source,
         description=str(data.get("description", "")),
         sends=str(data.get("sends", "")),
         keys=[k for k in data.get("keys", []) if isinstance(k, dict) and k.get("name")],
         folder=folder,
+        tools=sorted(f.stem for f in folder.glob("*.py") if not f.name.startswith("_")),
     )
 
 
-def plugins() -> dict[str, Group]:
-    """Every plugin tool group in this package, by name."""
-    return {
-        folder.name: _read_group(folder, "plugin")
-        for folder in sorted(TOOL_BOX.iterdir())
-        if (folder / MANIFEST).exists()
+def addable(custom_dir: Path | None) -> dict[str, Group]:
+    """Return every group an agent can add. A custom group replaces an installed one."""
+    groups = {
+        name: _read_group(folder, source)
+        for name, (folder, source) in offered_groups().items()
     }
-
-
-def _groups_for(agent_path: Path) -> dict[str, Group]:
-    """The groups this agent could add: plugins, with its custom groups
-    taking the place of any plugin of the same name."""
-    groups = plugins()
-    for name, folder in custom_groups(agent_path / "tools").items():
-        groups[name] = _read_group(folder, "custom")
+    for name, folder in custom_groups(custom_dir).items():
+        groups[name] = _read_group(folder, CUSTOM)
     return groups
+
+
+def _every_agent(every_agent: tuple[str, ...], groups: dict[str, Group]) -> list[Group]:
+    """Return the groups every agent has: the memory group, then the hub's list."""
+    found = [_read_group(MEMORY_GROUP, "basic-bot")]
+    found += [groups[name] for name in every_agent if name in groups]
+    return found
 
 
 def _added(agent_path: Path) -> dict[str, dict]:
@@ -123,58 +120,71 @@ def _tilde(path: Path) -> str:
 
 # --- Showing ---
 
-def show_available(agents: list[tuple[str, Path]]) -> None:
-    """bountiful tools: the plugins, which agents use each, and any
-    custom groups in the agents' folders."""
-    available = plugins()
+def _rows(rows: list[tuple[str, str, str]], columns: list[tuple[str, str, str]]) -> None:
+    """Print rows of a name, a source, and tools, in columns sized to fit every row in columns."""
+    name_width = max(len(r[0]) for r in columns) + 4
+    source_width = max(len(r[1]) for r in columns) + 4
+    for name, source, tools in rows:
+        print(f"  {name:<{name_width}}{source:<{source_width}}{tools}")
+
+
+def show_available(
+    agents: list[tuple[str, Path]], every_agent: tuple[str, ...], custom_dir: Path | None,
+) -> None:
+    """Print every tool group, where it comes from, and which agents have added it."""
+    groups = addable(custom_dir)
+    always = _every_agent(every_agent, groups)
     added = {agent_id: _added(path) for agent_id, path in agents}
-    custom = {agent_id: custom_groups(path / "tools") for agent_id, path in agents}
 
-    print("Plugin tools")
-    if not available:
+    rest = [g for name, g in sorted(groups.items()) if name not in every_agent]
+    always_rows = [(g.name, g.source, ", ".join(g.tools)) for g in always]
+    rest_rows = [(g.name, g.source, ", ".join(g.tools)) for g in rest]
+
+    print("Every agent")
+    _rows(always_rows, always_rows + rest_rows)
+    print("\nAdded per agent")
+    if not rest:
         print("  none installed")
-    for group in available.values():
-        users = [
-            agent_id for agent_id in added
-            if group.name in added[agent_id] and group.name not in custom[agent_id]
-        ]
-        print(f"  {group.name}")
-        _say(group.description, indent=6)
-        _say(f"used by: {', '.join(users) if users else 'no agent'}", indent=6)
-
-    found = [
-        (name, agent_id, name in added[agent_id])
-        for agent_id in custom
-        for name in custom[agent_id]
-    ]
-    if found:
-        print("\nCustom tools")
-        for name, agent_id, on in sorted(found):
-            print(f"  {name}  in {agent_id}'s tools/{'' if on else ', not added'}")
-
-
-def show_agent(agent_id: str, agent_path: Path) -> None:
-    """bountiful tools ID: the groups this agent has added."""
-    added = _added(agent_path)
-    if not added:
-        print(f"{agent_id} has only the default tools.")
         return
-    groups = _groups_for(agent_path)
-    width = max(len(name) for name in added) + 4
-    for name in sorted(added):
-        kind = groups[name].kind if name in groups else "not installed"
-        print(f"  {name:<{width}}{kind}")
+    _rows(rest_rows, always_rows + rest_rows)
+    for group in rest:
+        users = [agent_id for agent_id in added if group.name in added[agent_id]]
+        print()
+        _say(f"{group.name}: {group.description}", indent=2)
+        _say(f"used by: {', '.join(users) if users else 'no agent'}", indent=4)
+
+
+def show_agent(
+    agent_id: str, agent_path: Path, every_agent: tuple[str, ...], custom_dir: Path | None,
+) -> None:
+    """Print every tool group one agent has, and where each comes from."""
+    groups = addable(custom_dir)
+    rows = [(g.name, g.source, ", ".join(g.tools)) for g in _every_agent(every_agent, groups)]
+    for name in sorted(_added(agent_path)):
+        if name in every_agent:
+            continue
+        group = groups.get(name)
+        if group is None:
+            rows.append((name, "not installed", ""))
+        else:
+            rows.append((name, group.source, ", ".join(group.tools)))
+    _rows(rows, rows)
 
 
 # --- Adding and removing ---
 
-def add(agent_id: str, agent_path: Path, name: str) -> None:
-    """bountiful add GROUP ID: add a tool group to an agent.
+def _refuse_every_agent(name: str, every_agent: tuple[str, ...]) -> None:
+    if name == MEMORY_GROUP.name or name in every_agent:
+        raise PluginError(f"Every agent has {name}.")
 
-    Run again on a group the agent has, it offers to replace the
-    group's keys.
-    """
-    groups = _groups_for(agent_path)
+
+def add(
+    agent_id: str, agent_path: Path, name: str,
+    every_agent: tuple[str, ...], custom_dir: Path | None,
+) -> None:
+    """Add a tool group to an agent, or offer to replace its keys if it has the group."""
+    _refuse_every_agent(name, every_agent)
+    groups = {n: g for n, g in addable(custom_dir).items() if n not in every_agent}
     if name not in groups:
         raise PluginError(
             f"There's no tool group called '{name}'. "
@@ -203,14 +213,17 @@ def add(agent_id: str, agent_path: Path, name: str) -> None:
     print(f"Added {name} to {agent_id}. It takes effect the next time {agent_id} starts.")
 
 
-def remove(agent_id: str, agent_path: Path, name: str) -> None:
-    """bountiful remove GROUP ID: remove a tool group, with its settings
-    and keys. A custom group's folder is left as it is."""
+def remove(
+    agent_id: str, agent_path: Path, name: str,
+    every_agent: tuple[str, ...], custom_dir: Path | None,
+) -> None:
+    """Remove a tool group from an agent, with its settings and keys."""
+    _refuse_every_agent(name, every_agent)
     added = _added(agent_path)
     if name not in added:
         raise PluginError(f"{agent_id} doesn't have {name}.")
 
-    group = _groups_for(agent_path).get(name)
+    group = addable(custom_dir).get(name)
     if group:
         try:
             for key in group.keys:
@@ -223,7 +236,7 @@ def remove(agent_id: str, agent_path: Path, name: str) -> None:
     except AgentError as e:
         raise PluginError(str(e)) from e
 
-    note = " Its folder is untouched." if group and group.kind == "custom" else ""
+    note = " Its folder is untouched." if group and group.source == CUSTOM else ""
     print(f"Removed {name} from {agent_id}.{note} "
           f"It takes effect the next time {agent_id} starts.")
 
