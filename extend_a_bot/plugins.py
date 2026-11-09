@@ -1,7 +1,7 @@
 """Show, add, and remove an agent's tool groups.
 
 The bountiful command calls these and passes what only it knows: the
-groups every agent has, and the folder of custom groups. A group is
+built-in groups, and the folder of custom groups. A group is
 added to an agent by naming it, with its settings, in agent.json. The
 keys a group needs are asked for and stored in the system keyring
 first, and if one isn't given, nothing is added. Removing a group
@@ -82,10 +82,10 @@ def addable(custom_dir: Path | None) -> dict[str, Group]:
     return groups
 
 
-def _every_agent(every_agent: tuple[str, ...], groups: dict[str, Group]) -> list[Group]:
-    """Return the groups every agent has: the memory group, then the hub's list."""
+def _built_in(built_in: tuple[str, ...], groups: dict[str, Group]) -> list[Group]:
+    """Return the groups every agent has: the memory group, then the built-in groups."""
     found = [_read_group(MEMORY_GROUP, "basic-bot")]
-    found += [groups[name] for name in every_agent if name in groups]
+    found += [groups[name] for name in built_in if name in groups]
     return found
 
 
@@ -129,20 +129,20 @@ def _rows(rows: list[tuple[str, str, str]], columns: list[tuple[str, str, str]])
 
 
 def show_available(
-    agents: list[tuple[str, Path]], every_agent: tuple[str, ...], custom_dir: Path | None,
+    agents: list[tuple[str, Path]], built_in: tuple[str, ...], custom_dir: Path | None,
 ) -> None:
     """Print every tool group, where it comes from, and which agents have added it."""
     groups = addable(custom_dir)
-    always = _every_agent(every_agent, groups)
+    always = _built_in(built_in, groups)
     added = {agent_id: _added(path) for agent_id, path in agents}
 
-    rest = [g for name, g in sorted(groups.items()) if name not in every_agent]
+    rest = [g for name, g in sorted(groups.items()) if name not in built_in]
     always_rows = [(g.name, g.source, ", ".join(g.tools)) for g in always]
     rest_rows = [(g.name, g.source, ", ".join(g.tools)) for g in rest]
 
-    print("Every agent")
+    print("Built-in")
     _rows(always_rows, always_rows + rest_rows)
-    print("\nAdded per agent")
+    print("\nPlugins")
     if not rest:
         print("  none installed")
         return
@@ -155,13 +155,13 @@ def show_available(
 
 
 def show_agent(
-    agent_id: str, agent_path: Path, every_agent: tuple[str, ...], custom_dir: Path | None,
+    agent_id: str, agent_path: Path, built_in: tuple[str, ...], custom_dir: Path | None,
 ) -> None:
     """Print every tool group one agent has, and where each comes from."""
     groups = addable(custom_dir)
-    rows = [(g.name, g.source, ", ".join(g.tools)) for g in _every_agent(every_agent, groups)]
+    rows = [(g.name, g.source, ", ".join(g.tools)) for g in _built_in(built_in, groups)]
     for name in sorted(_added(agent_path)):
-        if name in every_agent:
+        if name in built_in:
             continue
         group = groups.get(name)
         if group is None:
@@ -173,18 +173,18 @@ def show_agent(
 
 # --- Adding and removing ---
 
-def _refuse_every_agent(name: str, every_agent: tuple[str, ...]) -> None:
-    if name == MEMORY_GROUP.name or name in every_agent:
-        raise PluginError(f"Every agent has {name}.")
+def _refuse_built_in(name: str, built_in: tuple[str, ...]) -> None:
+    if name == MEMORY_GROUP.name or name in built_in:
+        raise PluginError(f"{name} is built in, so it can't be added or removed.")
 
 
 def add(
     agent_id: str, agent_path: Path, name: str,
-    every_agent: tuple[str, ...], custom_dir: Path | None,
+    built_in: tuple[str, ...], custom_dir: Path | None,
 ) -> None:
     """Add a tool group to an agent, or offer to replace its keys if it has the group."""
-    _refuse_every_agent(name, every_agent)
-    groups = {n: g for n, g in addable(custom_dir).items() if n not in every_agent}
+    _refuse_built_in(name, built_in)
+    groups = {n: g for n, g in addable(custom_dir).items() if n not in built_in}
     if name not in groups:
         raise PluginError(
             f"There's no tool group called '{name}'. "
@@ -215,10 +215,10 @@ def add(
 
 def remove(
     agent_id: str, agent_path: Path, name: str,
-    every_agent: tuple[str, ...], custom_dir: Path | None,
+    built_in: tuple[str, ...], custom_dir: Path | None,
 ) -> None:
     """Remove a tool group from an agent, with its settings and keys."""
-    _refuse_every_agent(name, every_agent)
+    _refuse_built_in(name, built_in)
     added = _added(agent_path)
     if name not in added:
         raise PluginError(f"{agent_id} doesn't have {name}.")
