@@ -82,11 +82,19 @@ def addable(custom_dir: Path | None) -> dict[str, Group]:
     return groups
 
 
+def _memory() -> Group:
+    """Return basic-bot's memory group."""
+    return _read_group(MEMORY_GROUP, "basic-bot")
+
+
 def _built_in(built_in: tuple[str, ...], groups: dict[str, Group]) -> list[Group]:
-    """Return the groups every agent has: the memory group, then the built-in groups."""
-    found = [_read_group(MEMORY_GROUP, "basic-bot")]
-    found += [groups[name] for name in built_in if name in groups]
-    return found
+    """Return the built-in groups that are installed."""
+    return [groups[name] for name in built_in if name in groups]
+
+
+def _row(group: Group) -> tuple[str, str, str]:
+    """Return a group's name, source, and tools, for listing."""
+    return group.name, group.source, ", ".join(group.tools)
 
 
 def _added(agent_path: Path) -> dict[str, dict]:
@@ -133,20 +141,26 @@ def show_available(
 ) -> None:
     """Print every tool group, where it comes from, and which agents have added it."""
     groups = addable(custom_dir)
-    always = _built_in(built_in, groups)
     added = {agent_id: _added(path) for agent_id, path in agents}
 
     rest = [g for name, g in sorted(groups.items()) if name not in built_in]
-    always_rows = [(g.name, g.source, ", ".join(g.tools)) for g in always]
-    rest_rows = [(g.name, g.source, ", ".join(g.tools)) for g in rest]
+    memory_rows = [_row(_memory())]
+    built_in_rows = [_row(g) for g in _built_in(built_in, groups)]
+    rest_rows = [_row(g) for g in rest]
+    columns = memory_rows + built_in_rows + rest_rows
 
-    print("Built-in")
-    _rows(always_rows, always_rows + rest_rows)
+    print("Memory")
+    _rows(memory_rows, columns)
+    print("\nBuilt-in")
+    if built_in_rows:
+        _rows(built_in_rows, columns)
+    else:
+        print("  none")
     print("\nPlugins")
     if not rest:
         print("  none installed")
         return
-    _rows(rest_rows, always_rows + rest_rows)
+    _rows(rest_rows, columns)
     for group in rest:
         users = [agent_id for agent_id in added if group.name in added[agent_id]]
         print()
@@ -159,7 +173,7 @@ def show_agent(
 ) -> None:
     """Print every tool group one agent has, and where each comes from."""
     groups = addable(custom_dir)
-    rows = [(g.name, g.source, ", ".join(g.tools)) for g in _built_in(built_in, groups)]
+    rows = [_row(_memory())] + [_row(g) for g in _built_in(built_in, groups)]
     for name in sorted(_added(agent_path)):
         if name in built_in:
             continue
