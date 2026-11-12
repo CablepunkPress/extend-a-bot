@@ -1,4 +1,4 @@
-"""Tool: search Wikipedia for articles."""
+"""Search Wikipedia for articles."""
 
 import json
 import logging
@@ -13,10 +13,12 @@ TOOL = {
     "name": "search_wikipedia",
     "description": (
         "Search Wikipedia for articles about a subject. Use it to check a "
-        "fact about the world before stating it, especially names, dates, "
-        "numbers, and details of less familiar subjects, or when the user "
+        "fact about the world before stating it, especially who played, wrote, "
+        "or did something, names, titles in other languages, dates, numbers, "
+        "and details of less familiar subjects, or when the user "
         "questions something you said. Returns article titles with a short "
-        "matching excerpt; read an article with read_wikipedia. Wikipedia "
+        "matching excerpt. Search first for an article's exact title, then "
+        "read it with read_wikipedia. Wikipedia "
         "knows nothing about your conversations with the user; search your "
         "archive for those."
     ),

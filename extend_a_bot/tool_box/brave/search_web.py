@@ -1,22 +1,4 @@
-"""Tool: search the web with Brave Search.
-
-Uses Brave's LLM Context endpoint, which returns passages extracted
-from the pages it finds, each with its page's URL and title, within a
-token budget. The agent reads the sources themselves rather than
-another model's summary of them, so every claim it makes traces to a
-page. A result names its pages in "sources", which the engine records
-with the turn and takes out before the model reads the result.
-
-A result with pages ends with "cite", telling the model to name in its
-reply the sites its answer comes from, with the first page's site as
-the example. The rule is here rather than in the group's instructions
-because the result is the last thing the model reads before it
-answers; told only in the system prompt, the 26B left its source out
-of the reply (October 31, #494 and #500, with Wikipedia).
-
-The agent's key is read from the keyring at call time, under its id.
-Standard library only.
-"""
+"""Search the web with Brave Search."""
 
 import json
 import logging
@@ -40,6 +22,15 @@ MAX_TOKENS = 2048
 
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
+NOTE = (
+    "These pages come from Brave's index, not a live view of the web, so "
+    "don't describe them as live or real-time: a page's date says when it "
+    "was written. Prefer official and primary sources, such as a company's "
+    "own site, a government page, or the original report, over pages that "
+    "repeat them. When the sources disagree, say plainly which says what, "
+    "rather than searching again to settle it."
+)
+
 TOOL = {
     "name": "search_web",
     "description": (
@@ -48,7 +39,9 @@ TOOL = {
         "from the pages found, each with its page's title, address, and date "
         "when known. Each search is paid for by the user, so search only when "
         "it will settle a question, and prefer search_wikipedia, if you have "
-        "it, for well-documented subjects."
+        "it, for well-documented subjects. One search usually answers a "
+        "question; search again only for a different question, not to check "
+        "the same one twice."
     ),
     "input_schema": {
         "type": "object",
@@ -158,5 +151,6 @@ def handler(context, query=""):
     return json.dumps({
         "results": results,
         "sources": [{"title": r["title"], "url": r["url"]} for r in results],
+        "note": NOTE,
         "cite": _cite(results),
     })

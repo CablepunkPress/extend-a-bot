@@ -1,23 +1,4 @@
-"""Tool: read a Wikipedia article, or one of its sections, as plain text.
-
-An article's opening comes from Wikipedia's plain-text extracts. A
-section comes from the article's rendered page instead, because the
-plain-text extracts leave out anything inside a <div> or a table,
-which on Wikipedia includes most cast lists, discographies, and
-rosters laid out in columns. Reading a section that way also brings
-its subsections along, so "Cast" includes "Main cast".
-
-A result that read text names its source in "sources": the article,
-its address, and the section read, if any. The engine records it with
-the turn and takes it out before the model reads the result.
-
-It also ends with "cite", telling the model to say in its reply that
-the answer comes from Wikipedia. The rule is here rather than in the
-group's instructions because the result is the last thing the model
-reads before it answers: told only in the system prompt, the 26B
-followed the rule in its reasoning, or not at all, and left it out of
-the reply (October 31, #494 and #500).
-"""
+"""Read a Wikipedia article, or one of its sections, as plain text."""
 
 import html
 import json
@@ -34,8 +15,9 @@ TOOL = {
     "description": (
         "Read a Wikipedia article as plain text, by its exact title from "
         "search_wikipedia. A long article returns its opening and a list of "
-        "its sections; call again with a section name to read that part. "
-        "A section includes its subsections, lists, and tables."
+        "its sections; call again with the name of the section that holds what "
+        "you need, such as \"Cast\" for a film or \"Filmography\" for an "
+        "actor. A section includes its subsections, lists, and tables."
     ),
     "input_schema": {
         "type": "object",
@@ -56,6 +38,7 @@ TOOL = {
 # Ends every result that read text, so it's the last thing the model
 # reads before answering
 CITE = (
+    'Once you have what you need, stop searching and answer. '
     'When you answer from this, say in your reply itself that it comes '
     'from Wikipedia, for example: "According to Wikipedia, …"'
 )
