@@ -1,6 +1,7 @@
 {
     "name": "wikipedia",
     "description": "Search Wikipedia and read its articles, to check facts about the world",
+    "narration": "I'm checking Wikipedia…",
     "sends": "What the agent searches for, and the titles of articles it reads, go to Wikipedia (wikipedia.org). No account or key is needed.",
     "keys": []
 }
